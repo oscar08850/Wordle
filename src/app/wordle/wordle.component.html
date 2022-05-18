@@ -1,0 +1,22 @@
+<div class="container">
+  <div class="title-container">
+    <div class="title"> My wordle </div>
+    <div class="subtitle">
+      Educational purpose only. Play the original Wordle game <a href="https://www.powerlanguage.co.uk/wordle/" target="_blank">here</a>
+    </div>
+  </div>
+  <div class="main">
+    <div class="try-container" *ngFor="let try of tries">
+      <div class="letter-container" *ngFor="let letter of try.letters">
+        {{letter.text}}
+        
+    </div>
+  </div>
+
+    main
+  </div>
+
+  <div class="keyboard-container">
+    keybord
+  </div>
+</div>
