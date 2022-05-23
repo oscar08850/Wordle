@@ -1,3 +1,4 @@
+import { THIS_EXPR } from '@angular/compiler/src/output/output_ast';
 import { Component, HostListener, OnInit } from '@angular/core'; //hemos metido HostListener
 
 // Lenght of the word.
@@ -46,8 +47,18 @@ export class Wordle implements OnInit {
   //One try is one row in the UI //PARA EL AHORCADO SUPONGO QUE ESTO NO SERA VISIBLE
   readonly tries: Try[] = [];
 
+  // Message shown in the message panel.
+  infoMsg= '';
+
+  //Controla info message fadding
+  fadeOutInfoMessage = false;
+
   //Tracks the current letter index
   private curLetterIndex = 0;
+
+
+  // Tracks the number of submitted tries.
+  private numSubmittedTries= 0;
 
   constructor() {
 
@@ -70,10 +81,27 @@ export class Wordle implements OnInit {
   private handleClickKey(key: string){
     // if key is a letter, pintame la letra
     if (LETTERS[key.toLowerCase()]){
-      this.setLetter(key);
-      this.curLetterIndex++;
+      // Only allow typing letters in the current try. Don't go over if the current try has not been submitted
+      if (this.curLetterIndex < (this.numSubmittedTries+1) * WORD_LENGTH){ // _ _ _ _ _ (Si Estas en la primera posición) 1<tercer intento (2+1)*5
+        this.setLetter(key);
+        this.curLetterIndex++;
+      }
+    }
+    //Handle Delete.
+    else if (key== 'Backspace'){   //Si pulso tecla borrar borro siempre que el indice sea mayor que numero de intento * longitud letra.
+      // Don't delete previous try.
+      if (this.curLetterIndex > this.numSubmittedTries * WORD_LENGTH){
+        this.curLetterIndex--;
+        this.setLetter('');
+      }
+    } 
+    // Enviamos respuesta
+    else if (key = 'Enter'){
+      this.checkCurrentTry();
 
     }
+
+
   }
 
   private setLetter(letter: string){
@@ -82,7 +110,28 @@ export class Wordle implements OnInit {
     this.tries[tryIndex].letters[letterIndex].text = letter;
   }
 
+  private checkCurrentTry(){
+    // Comprobar si el usuario ha rellenado todos los huecos.
+    const curTry =  this.tries[this.numSubmittedTries];
+    if (curTry.letters.some(letter=>letter.text === '')){
+      this.showInfoMessage('Letras no introducidas!');
+      return;
+    }
+  }
 
+  private showInfoMessage(msg: string){
+    this.infoMsg = msg;
+    //Que se muestre solo 2 segundos.
+    setTimeout(() => {
+      this.fadeOutInfoMessage = true;
+      //Reset cuando la animación acaba.
+      setTimeout(() => {
+        this.infoMsg= '';
+        this.fadeOutInfoMessage = false;
+      }, 500);
+    }, 2000);
+
+  }
 
 
   ngOnInit() { //De momento no lo tiene

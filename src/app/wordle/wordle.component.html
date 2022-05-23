@@ -2,14 +2,17 @@
   <div class="title-container">
     <div class="title"> My wordle </div>
     <div class="subtitle">
-      Educational purpose only. Play the original Wordle game <a href="https://www.powerlanguage.co.uk/wordle/" target="_blank">here</a>
+      Educational purpose only. Play the original Wordle game
+      <a href="https://www.powerlanguage.co.uk/wordle/" target="_blank">here</a>
     </div>
+
   </div>
+
   <div class="main">
     <div class="try-container" *ngFor="let try of tries">
-      <div class="letter-container" *ngFor="let letter of try.letters">
+      <div class="letter-container" *ngFor="let letter of try.letters"
+          [class.has-text]="letter.text !== ''">
         {{letter.text}}
-        
     </div>
   </div>
 
@@ -18,5 +21,11 @@
 
   <div class="keyboard-container">
     keybord
+  </div>
+
+  <div class="info-msg"
+    [class.show]="infoMsg !== ''"
+    [class.fade-out]="fadeOutInfoMessage">
+  {{infoMsg}}
   </div>
 </div>
