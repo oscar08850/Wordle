@@ -1,5 +1,7 @@
 import { THIS_EXPR } from '@angular/compiler/src/output/output_ast';
-import { Component, HostListener, OnInit } from '@angular/core'; //hemos metido HostListener
+import { Component, ElementRef, HostListener, OnInit, ViewChildren } from '@angular/core'; //hemos metido HostListener
+import { QueryList } from '@angular/core/src/render3';
+import { WORDS } from './words';
 
 // Lenght of the word.
 const WORD_LENGTH = 5;
@@ -42,6 +44,7 @@ enum LetterState {
   styleUrls: ['./wordle.component.scss']
 })
 export class Wordle implements OnInit {
+  @ViewChildren('tryContainer') tryContainers!: QueryList<ElementRef>;
 
   //Store all the tries.
   //One try is one row in the UI //PARA EL AHORCADO SUPONGO QUE ESTO NO SERA VISIBLE
@@ -60,6 +63,10 @@ export class Wordle implements OnInit {
   // Tracks the number of submitted tries.
   private numSubmittedTries= 0;
 
+  //Guardamos la palabra secreta.
+  private targetWord='';
+
+
   constructor() {
 
     // Populate initial state of "tries".
@@ -70,6 +77,23 @@ export class Wordle implements OnInit {
       }
       this.tries.push({ letters });
     }
+
+    //Obtenemos una palabra de la lista de palabras.
+    const numWords = WORDS.length;
+    while(true){
+      // Escogemos una randomly y miramos que sea del mismo length que WORD_LENGTH.
+      const index = Math.floor(Math.random() * numWords)
+      const word = WORDS[index];
+
+      if (word.length === WORD_LENGTH){
+        this.targetWord = word.toLowerCase();
+        break;
+      }
+    }
+    // Print target word.
+    console.log('target word: ', this.targetWord);
+
+
   }
 
 
@@ -117,6 +141,24 @@ export class Wordle implements OnInit {
       this.showInfoMessage('Letras no introducidas!');
       return;
     }
+
+    const wordFromCurTry = curTry.letters.map(letter => letter.text).join('').toUpperCase();
+    if (!WORDS.includes(wordFromCurTry)) {
+      this.showInfoMessage('Not in word list');
+      // Shake the current row.
+      const tryContainer =
+          this.tryContainers.get(this.numSubmittedTries)?.nativeElement as
+          HTMLElement;
+      tryContainer.classList.add('shake');
+      setTimeout(() => {
+        tryContainer.classList.remove('shake');
+      }, 500);
+      return;
+    }
+
+    //Necesitamos una lista de palabras para comprobar.
+
+
   }
 
   private showInfoMessage(msg: string){
