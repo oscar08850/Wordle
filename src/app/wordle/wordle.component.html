@@ -11,7 +11,10 @@
   <div class="main">
     <div class="try-container" *ngFor="let try of tries" #tryContainer>
       <div class="letter-container" *ngFor="let letter of try.letters"
-          [class.has-text]="letter.text !== ''">
+        [class.match]="letter.state === LetterState.FULL_MATCH"
+        [class.partial]="letter.state === LetterState.PARTIAL_MATCH"
+        [class.wrong]="letter.state === LetterState.WRONG"
+        [class.has-text]="letter.text !== ''">
         {{letter.text}}
     </div>
   </div>
@@ -20,8 +23,20 @@
   </div>
 
   <div class="keyboard-container">
-    keybord
-  </div>
+		<div [class]="['row' + i, 'row'].join(' ')"
+		    *ngFor="let row of keyboardRows; let i = index">
+			<div *ngFor="let key of row" class="key"
+          [class.enter]="key === 'Enter'">
+          <div *ngIf="key !== 'Backspace'; else backspace">
+				  {{key}}
+          </div>
+          <ng-template #backspace>
+            <img src= "../assets/backspace.svg"/>
+          </ng-template>
+			</div>
+		</div>
+	</div>
+
 
   <div class="info-msg"
     [class.show]="infoMsg !== ''"

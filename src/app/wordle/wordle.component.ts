@@ -1,20 +1,20 @@
 import { THIS_EXPR } from '@angular/compiler/src/output/output_ast';
-import { Component, ElementRef, HostListener, OnInit, ViewChildren } from '@angular/core'; //hemos metido HostListener
-import { QueryList } from '@angular/core/src/render3';
+import { Component, ElementRef, HostListener, OnInit, QueryList, ViewChildren } from '@angular/core'; //hemos metido HostListener
 import { WORDS } from './words';
 
 // Lenght of the word.
-const WORD_LENGTH = 5;
+const WORD_LENGTH = 6;
 
 // Number of tries.
 const NUM_TRIES = 6;
 
 
+
 //Letter map.
-const LETTERS = (()=>{
+const LETTERS = (() => {
   // letter -> true. Easier to check.
-  const ret: {[key:string]:boolean} = {};
-  for (let charCode = 97; charCode<97+26; charCode++){
+  const ret: { [key: string]: boolean } = {};
+  for (let charCode = 97; charCode < 97 + 26; charCode++) {
     ret[String.fromCharCode(charCode)] = true;
   }
   return ret;
@@ -43,15 +43,28 @@ enum LetterState {
   templateUrl: './wordle.component.html',
   styleUrls: ['./wordle.component.scss']
 })
+
+
 export class Wordle implements OnInit {
-  @ViewChildren('tryContainer') tryContainers!: QueryList<ElementRef>;
+  @ViewChildren('tryContainer') tryContainers!: QueryList<ElementRef>; //Esto no se puede usar por la version de angular.
 
   //Store all the tries.
   //One try is one row in the UI //PARA EL AHORCADO SUPONGO QUE ESTO NO SERA VISIBLE
   readonly tries: Try[] = [];
 
+  //Para poder acceder a enum desde html (Las caracteristicas de cada letra)
+  readonly LetterState = LetterState;
+
+
+  // Letras del teclado
+  readonly keyboardRows = [
+    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+    ['Enter', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'Backspace'],
+  ]
+
   // Message shown in the message panel.
-  infoMsg= '';
+  infoMsg = '';
 
   //Controla info message fadding
   fadeOutInfoMessage = false;
@@ -59,12 +72,16 @@ export class Wordle implements OnInit {
   //Tracks the current letter index
   private curLetterIndex = 0;
 
-
   // Tracks the number of submitted tries.
-  private numSubmittedTries= 0;
+  private numSubmittedTries = 0;
 
   //Guardamos la palabra secreta.
-  private targetWord='';
+  private targetWord = '';
+
+  // Booleano para ver si has ganado
+  private won = false;
+
+  private targetWordLetterCounts: { [letter: string]: number } = {};
 
 
   constructor() {
@@ -80,12 +97,12 @@ export class Wordle implements OnInit {
 
     //Obtenemos una palabra de la lista de palabras.
     const numWords = WORDS.length;
-    while(true){
+    while (true) {
       // Escogemos una randomly y miramos que sea del mismo length que WORD_LENGTH.
       const index = Math.floor(Math.random() * numWords)
       const word = WORDS[index];
 
-      if (word.length === WORD_LENGTH){
+      if (word.length === WORD_LENGTH) {
         this.targetWord = word.toLowerCase();
         break;
       }
@@ -93,8 +110,26 @@ export class Wordle implements OnInit {
     // Print target word.
     console.log('target word: ', this.targetWord);
 
+    //Necesitamos una lista de palabras para comprobar.
+
+
+    //stores the count for each letter from the target word.
+
+    //Exaple: word is "happy", then this map will look like:
+    //{ 'h':1, 'a':1, 'p': 2, 'y': 1}
+    for (const letter of this.targetWord) {
+      const count = this.targetWordLetterCounts[letter];
+      if (count == null) {
+        this.targetWordLetterCounts[letter] = 0;
+      }
+      this.targetWordLetterCounts[letter]++;
+    }
+    console.log(this.targetWordLetterCounts);
+
 
   }
+
+
 
 
   @HostListener('document:keydown', ['$event'])
@@ -102,25 +137,29 @@ export class Wordle implements OnInit {
     this.handleClickKey(event.key);
   }
 
-  private handleClickKey(key: string){
+  private handleClickKey(key: string) {
+    // No proceses key down si el usuario ha ganado el juego.
+    if (this.won){
+      return;
+    }
     // if key is a letter, pintame la letra
-    if (LETTERS[key.toLowerCase()]){
+    if (LETTERS[key.toLowerCase()]) {
       // Only allow typing letters in the current try. Don't go over if the current try has not been submitted
-      if (this.curLetterIndex < (this.numSubmittedTries+1) * WORD_LENGTH){ // _ _ _ _ _ (Si Estas en la primera posición) 1<tercer intento (2+1)*5
+      if (this.curLetterIndex < (this.numSubmittedTries + 1) * WORD_LENGTH) { // _ _ _ _ _ (Si Estas en la primera posición) 1<tercer intento (2+1)*5
         this.setLetter(key);
         this.curLetterIndex++;
       }
     }
     //Handle Delete.
-    else if (key== 'Backspace'){   //Si pulso tecla borrar borro siempre que el indice sea mayor que numero de intento * longitud letra.
+    else if (key == 'Backspace') {   //Si pulso tecla borrar borro siempre que el indice sea mayor que numero de intento * longitud letra.
       // Don't delete previous try.
-      if (this.curLetterIndex > this.numSubmittedTries * WORD_LENGTH){
+      if (this.curLetterIndex > this.numSubmittedTries * WORD_LENGTH) {
         this.curLetterIndex--;
         this.setLetter('');
       }
-    } 
+    }
     // Enviamos respuesta
-    else if (key = 'Enter'){
+    else if (key = 'Enter') {
       this.checkCurrentTry();
 
     }
@@ -128,16 +167,16 @@ export class Wordle implements OnInit {
 
   }
 
-  private setLetter(letter: string){
+  private setLetter(letter: string) {
     const tryIndex = Math.floor(this.curLetterIndex / WORD_LENGTH);
     const letterIndex = this.curLetterIndex - tryIndex * WORD_LENGTH;
     this.tries[tryIndex].letters[letterIndex].text = letter;
   }
 
-  private checkCurrentTry(){
+  private checkCurrentTry() {
     // Comprobar si el usuario ha rellenado todos los huecos.
-    const curTry =  this.tries[this.numSubmittedTries];
-    if (curTry.letters.some(letter=>letter.text === '')){
+    const curTry = this.tries[this.numSubmittedTries];
+    if (curTry.letters.some(letter => letter.text === '')) {
       this.showInfoMessage('Letras no introducidas!');
       return;
     }
@@ -146,6 +185,8 @@ export class Wordle implements OnInit {
     if (!WORDS.includes(wordFromCurTry)) {
       this.showInfoMessage('Not in word list');
       // Shake the current row.
+
+      /*
       const tryContainer =
           this.tryContainers.get(this.numSubmittedTries)?.nativeElement as
           HTMLElement;
@@ -153,22 +194,65 @@ export class Wordle implements OnInit {
       setTimeout(() => {
         tryContainer.classList.remove('shake');
       }, 500);
+      */
+
       return;
     }
 
-    //Necesitamos una lista de palabras para comprobar.
+    //Clone the counts map. Need to use it every check with the initial values.
+    const targetWordLetterCounts = {...this.targetWordLetterCounts};
+    const states: LetterState[] = [];
+    for (let i=0; i < WORD_LENGTH; i++){
+      const expected = this.targetWord[i];
+      const curLetter = curTry.letters[i];
+      const got = curLetter.text.toLowerCase();
+      let state = LetterState.WRONG;
+      // Need to make sure only performs check when the letter has not been checked before.
+      //
+      //For example if the target word is "happy", then the first "a" user types should be checked, but the second "a" should not.
+      if (expected === got && targetWordLetterCounts[got] > 0 ){
+        targetWordLetterCounts[expected]--;
+        state = LetterState.FULL_MATCH;
+      }
+      else if (this.targetWord.includes(got) && targetWordLetterCounts[got] > 0){
+        targetWordLetterCounts[got]--;
+        state = LetterState.PARTIAL_MATCH;
+      }
+      states.push(state);
+    }
+    console.log(states);
 
+    // Animate.  
 
+    //AQUI IRIA PARA CAMBIAR LAS LETRAS DE COLOR CUANDO LE DAS AL ENTER
+
+    ///
+
+    this.numSubmittedTries++;
+
+    if (states.every(state => state === LetterState.FULL_MATCH)) {
+      this.showInfoMessage('NICE!');
+      this.won = true;
+      // bounce animation.
+
+      return;
+    }
+
+    //running out of tries show correct answer.
+    if (this.numSubmittedTries === NUM_TRIES){
+      this.showInfoMessage("La palabra era: " + this.targetWord.toUpperCase());
+      // 
+    }
   }
 
-  private showInfoMessage(msg: string){
+  private showInfoMessage(msg: string) {
     this.infoMsg = msg;
     //Que se muestre solo 2 segundos.
     setTimeout(() => {
       this.fadeOutInfoMessage = true;
       //Reset cuando la animación acaba.
       setTimeout(() => {
-        this.infoMsg= '';
+        this.infoMsg = '';
         this.fadeOutInfoMessage = false;
       }, 500);
     }, 2000);
