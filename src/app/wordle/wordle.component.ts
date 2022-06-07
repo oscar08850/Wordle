@@ -159,7 +159,8 @@ export class Wordle implements OnInit {
 
 
 
-  private handleClickKey(key: string) {
+
+  handleClickKey(key: string) {
     // No proceses key down si el usuario ha ganado el juego.
     if (this.won) {
       return;
