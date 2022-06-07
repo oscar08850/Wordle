@@ -121,6 +121,21 @@
                 text-transform: uppercase;
             }
 
+            &.match {
+                background-color: green;
+                color: white;
+            }
+            
+            &.partial {
+                background-color: rgb(165, 165, 7);
+                color: white;
+            }
+
+            &.wrong {
+                background-color: grey;
+                color: white;
+            }
+
             
             &:hover { //cuando pasamos por encima (hover) se ensombrece.
                 background-color: #bbb;

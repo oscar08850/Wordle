@@ -25,14 +25,14 @@
   <div class="keyboard-container">
 		<div [class]="['row' + i, 'row'].join(' ')"
 		    *ngFor="let row of keyboardRows; let i = index">
-			<div *ngFor="let key of row" class="key"
-          [class.enter]="key === 'Enter'">
-          <div *ngIf="key !== 'Backspace'; else backspace">
+			<div *ngFor="let key of row" [class]="getKeyClass(key)"
+			    [class.enter]="key === 'Enter'">
+				<div *ngIf="key !== 'Backspace'; else backspace">
 				  {{key}}
-          </div>
-          <ng-template #backspace>
-            <img src= "../assets/backspace.svg"/>
-          </ng-template>
+				</div>
+				<ng-template #backspace>
+					<img src="../assets/backspace.svg"/>
+				</ng-template>
 			</div>
 		</div>
 	</div>

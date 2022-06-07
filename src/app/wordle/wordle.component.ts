@@ -63,6 +63,11 @@ export class Wordle implements OnInit {
     ['Enter', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'Backspace'],
   ]
 
+
+  //Retorna el estado para una key del teclado a traves del index de las teclas.
+  readonly curLetterStates: { [Key: string]: LetterState } = {};
+
+
   // Message shown in the message panel.
   infoMsg = '';
 
@@ -137,9 +142,26 @@ export class Wordle implements OnInit {
     this.handleClickKey(event.key);
   }
 
+  //Returns the classes for the given keyboard key based on its state.
+  getKeyClass(key: string): string {
+    const state = this.curLetterStates[key.toLowerCase()];
+    switch (state) {
+      case LetterState.FULL_MATCH:
+        return 'match key';
+      case LetterState.PARTIAL_MATCH:
+        return 'partial key';
+      case LetterState.WRONG:
+        return 'wrong key';
+      default:
+        return 'key';
+    }
+  }
+
+
+
   private handleClickKey(key: string) {
     // No proceses key down si el usuario ha ganado el juego.
-    if (this.won){
+    if (this.won) {
       return;
     }
     // if key is a letter, pintame la letra
@@ -200,9 +222,9 @@ export class Wordle implements OnInit {
     }
 
     //Clone the counts map. Need to use it every check with the initial values.
-    const targetWordLetterCounts = {...this.targetWordLetterCounts};
+    const targetWordLetterCounts = { ...this.targetWordLetterCounts };
     const states: LetterState[] = [];
-    for (let i=0; i < WORD_LENGTH; i++){
+    for (let i = 0; i < WORD_LENGTH; i++) {
       const expected = this.targetWord[i];
       const curLetter = curTry.letters[i];
       const got = curLetter.text.toLowerCase();
@@ -210,11 +232,11 @@ export class Wordle implements OnInit {
       // Need to make sure only performs check when the letter has not been checked before.
       //
       //For example if the target word is "happy", then the first "a" user types should be checked, but the second "a" should not.
-      if (expected === got && targetWordLetterCounts[got] > 0 ){
+      if (expected === got && targetWordLetterCounts[got] > 0) {
         targetWordLetterCounts[expected]--;
         state = LetterState.FULL_MATCH;
       }
-      else if (this.targetWord.includes(got) && targetWordLetterCounts[got] > 0){
+      else if (this.targetWord.includes(got) && targetWordLetterCounts[got] > 0) {
         targetWordLetterCounts[got]--;
         state = LetterState.PARTIAL_MATCH;
       }
@@ -228,6 +250,23 @@ export class Wordle implements OnInit {
 
     ///
 
+    // Save to keyboard key states
+    // Do this afterthe current try has been submitted and the animation is done (no animation)
+    for (let i = 0; i < WORD_LENGTH; i++) {
+      const curLetter = curTry.letters[i];
+      const got = curLetter.text.toLocaleLowerCase();
+      const curStoredState = this.curLetterStates[got];
+      const targetState = states[i];
+      // This allows override state with better result.
+      // 
+      //For example, if "A" was partial match in previous try, and becomes full match in the current try,
+      // we update the state key state to the full match (because its enum value is larger).
+      if (curStoredState == null || targetState > curStoredState) {
+        this.curLetterStates[got] = targetState;
+      }
+    }
+
+
     this.numSubmittedTries++;
 
     if (states.every(state => state === LetterState.FULL_MATCH)) {
@@ -239,7 +278,7 @@ export class Wordle implements OnInit {
     }
 
     //running out of tries show correct answer.
-    if (this.numSubmittedTries === NUM_TRIES){
+    if (this.numSubmittedTries === NUM_TRIES) {
       this.showInfoMessage("La palabra era: " + this.targetWord.toUpperCase());
       // 
     }
