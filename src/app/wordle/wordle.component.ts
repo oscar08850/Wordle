@@ -3,16 +3,15 @@ import { Component, ElementRef, HostListener, OnInit, QueryList, ViewChildren } 
 import { WORDS } from './words';
 
 // Lenght of the word.
-const WORD_LENGTH = 6;
+const WORD_LENGTH = 5;
 
 // Number of tries.
-const NUM_TRIES = 6;
+const NUM_TRIES = 4;
 
 
 
 //Letter map.
 const LETTERS = (() => {
-  // letter -> true. Easier to check.
   const ret: { [key: string]: boolean } = {};
   for (let charCode = 97; charCode < 97 + 26; charCode++) {
     ret[String.fromCharCode(charCode)] = true;
@@ -68,16 +67,16 @@ export class Wordle implements OnInit {
   readonly curLetterStates: { [Key: string]: LetterState } = {};
 
 
-  // Message shown in the message panel.
+  // Inicializo el mensaje que se muestra el usuario.
   infoMsg = '';
 
-  //Controla info message fadding
+  //Controla info message fadding (que desaparezca el mensaje)
   fadeOutInfoMessage = false;
 
-  //Tracks the current letter index
+  //Indice de la letra actual
   private curLetterIndex = 0;
 
-  // Tracks the number of submitted tries.
+  // Por que intento vamos.
   private numSubmittedTries = 0;
 
   //Guardamos la palabra secreta.
@@ -86,12 +85,13 @@ export class Wordle implements OnInit {
   // Booleano para ver si has ganado
   private won = false;
 
+
   private targetWordLetterCounts: { [letter: string]: number } = {};
 
 
   constructor() {
 
-    // Populate initial state of "tries".
+    // Populate initial state of "tries". Inicializamos el tablero y ponemos los estados de las letras vacias en PENDIENTE
     for (let i = 0; i < NUM_TRIES; i++) {
       const letters: Letter[] = [];
       for (let j = 0; j < WORD_LENGTH; j++) {
@@ -107,13 +107,15 @@ export class Wordle implements OnInit {
       const index = Math.floor(Math.random() * numWords)
       const word = WORDS[index];
 
+      //Si coincide el tamaño salimos del bucle infinito
       if (word.length === WORD_LENGTH) {
         this.targetWord = word.toLowerCase();
         break;
       }
     }
-    // Print target word.
-    console.log('target word: ', this.targetWord);
+
+    // Enseñame la palabra secreta 
+    console.log('No hagas trampa! la target word es: ', this.targetWord);
 
     //Necesitamos una lista de palabras para comprobar.
 
@@ -124,25 +126,23 @@ export class Wordle implements OnInit {
     //{ 'h':1, 'a':1, 'p': 2, 'y': 1}
     for (const letter of this.targetWord) {
       const count = this.targetWordLetterCounts[letter];
+      console.log("const count = this.targetWordLetterCounts[letter];" + count);
       if (count == null) {
         this.targetWordLetterCounts[letter] = 0;
       }
       this.targetWordLetterCounts[letter]++;
     }
-    console.log(this.targetWordLetterCounts);
-
-
   }
 
 
 
-
+  // evento teclado
   @HostListener('document:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
     this.handleClickKey(event.key);
   }
 
-  //Returns the classes for the given keyboard key based on its state.
+  //Retorna la clase para la tecla segun el estado de la letra. Esto lo usaremos para pintar las letras del teclado.
   getKeyClass(key: string): string {
     const state = this.curLetterStates[key.toLowerCase()];
     switch (state) {
@@ -165,9 +165,9 @@ export class Wordle implements OnInit {
     if (this.won) {
       return;
     }
-    // if key is a letter, pintame la letra
+    // if key is a letter, pintame la letra (diferente de número)
     if (LETTERS[key.toLowerCase()]) {
-      // Only allow typing letters in the current try. Don't go over if the current try has not been submitted
+      // Solo permite escribir letras en el intento actual. No permite saltar al siguiente.
       if (this.curLetterIndex < (this.numSubmittedTries + 1) * WORD_LENGTH) { // _ _ _ _ _ (Si Estas en la primera posición) 1<tercer intento (2+1)*5
         this.setLetter(key);
         this.curLetterIndex++;
@@ -175,40 +175,39 @@ export class Wordle implements OnInit {
     }
     //Handle Delete.
     else if (key == 'Backspace') {   //Si pulso tecla borrar borro siempre que el indice sea mayor que numero de intento * longitud letra.
-      // Don't delete previous try.
+      // No borres el intento anterior por que ya se ha enviado. No hagas trampas!!!
       if (this.curLetterIndex > this.numSubmittedTries * WORD_LENGTH) {
         this.curLetterIndex--;
-        this.setLetter('');
+        this.setLetter(''); //borra la letra (escribe la letra en blanco)
       }
     }
-    // Enviamos respuesta
+    // Enviamos respuesta al presionar la tecla Enter
     else if (key = 'Enter') {
       this.checkCurrentTry();
-
     }
 
 
   }
 
+  //Pinta la letra en el recuadro que toca
   private setLetter(letter: string) {
     const tryIndex = Math.floor(this.curLetterIndex / WORD_LENGTH);
     const letterIndex = this.curLetterIndex - tryIndex * WORD_LENGTH;
     this.tries[tryIndex].letters[letterIndex].text = letter;
   }
 
+  //Una vez le damos al intro: comprueba la palabra con el diccionario.
   private checkCurrentTry() {
     // Comprobar si el usuario ha rellenado todos los huecos.
     const curTry = this.tries[this.numSubmittedTries];
     if (curTry.letters.some(letter => letter.text === '')) {
-      this.showInfoMessage('Letras no introducidas!');
+      this.showInfoMessage('Faltan letras! Palabra incompleta');
       return;
     }
-
-    const wordFromCurTry = curTry.letters.map(letter => letter.text).join('').toUpperCase();
-    if (!WORDS.includes(wordFromCurTry)) {
+    const wordFromCurTry = curTry.letters.map(letter => letter.text).join('').toUpperCase(); //Lo junta y lo pone en mayusculas pq el diccionari está en mayusculas
+    if (!WORDS.includes(wordFromCurTry)) { //Si no esta en el diccionario no comprueba si es correcta. Esto se podria llegar a quitar
       this.showInfoMessage('Not in word list');
-      // Shake the current row.
-
+      // Shake the current row. //Animacion que de error que no funciona.
       /*
       const tryContainer =
           this.tryContainers.get(this.numSubmittedTries)?.nativeElement as
